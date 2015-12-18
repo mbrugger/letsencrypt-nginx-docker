@@ -30,11 +30,9 @@ The application continues normal operation without any configuration changes whi
         docker run -it --rm -p 1086:80 -p 1087:443 --name letsencrypt \
             -v "/etc/letsencrypt:/etc/letsencrypt" \
             -v "/var/lib/letsencrypt:/var/lib/letsencrypt" \
-            quay.io/letsencrypt/letsencrypt:latest auth --agree-dev-preview --server \
+            quay.io/letsencrypt/letsencrypt:latest auth --agree-dev-preview --renew-by-default --server \
             https://acme-v01.api.letsencrypt.org/directory -d my.example.com
 
 Issuing the certificate works this way without a problem.
-Unfortunately running the same command a second time to request an updated certificate always fails with different error messages.
-
-        mbrugger@my.example.com $ ./request_certificate.sh
-        Failed authorization procedure. my.example.com (dvsni): unauthorized :: The client lacks sufficient authorization :: Correct zName not found for TLS SNI challenge
+~~Unfortunately running the same command a second time to request an updated certificate always fails with different error messages.~~
+Meanwhile the renewal also works. To fully automate the renewal process I added the following parameter "--renew-by-default".
