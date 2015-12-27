@@ -9,6 +9,7 @@ Therefore I did take the following approach to create a setup which is capable o
 The frontend nginx as reverse proxy is in my case redirecting requests to different docker applications
 ![container setup](containers.png)
 
+The letsencrypt client writes the files used for webroot authentication into a shared folder which is served by the nginx to the letsencrypt server performing the authentication.
 ## Setup
 Always find&replace my.example.com with your hostname.
 
