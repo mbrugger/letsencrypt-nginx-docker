@@ -1,9 +1,8 @@
 # letsencrypt-nginx-docker
 Samples configs and documentation for configuring letsencrypt using nginx and the dockerized client
 
-In this little guide I want to show an easy setup on how to integrate let's encrypt with an nginx/docker setup.
-
-Also the nginx letsencrypt-auto integration is currently broken and I would not want an automated tool to change my configuration files anyways.
+In this little guide I want to show an easy setup on how to integrate let's encrypt with an nginx/docker setup using a shared volume and the webroot plugin.
+I previously used the "standalone" webserver plugin but a letsencrypt update did break the renewal process for me, so I tried the webroot plugin.
 
 Therefore I did take the following approach to create a setup which is capable of automatic updates.
 
@@ -13,26 +12,23 @@ The frontend nginx as reverse proxy is in my case redirecting requests to differ
 ## Setup
 Always find&replace my.example.com with your hostname.
 
-1. I added a location in each relevant server block redirecting the letsencrypt requests to the letsencrypt docker container (listening on port 1086/1087) instead of the real application.
+1. I added a location in the relevant server block redirecting the letsencrypt requests to the shared volume of the letsencrypt container.
 (See `nginx-vhost.conf`)
 
         location /.well-known/acme-challenge {
-                proxy_pass http://localhost:1086;
-                proxy_set_header Host            $host;
-                proxy_set_header X-Forwarded-For $remote_addr;
-                proxy_set_header X-Forwarded-Proto https;
+                root /tmp/letsencrypt/www;
         }
 The application continues normal operation without any configuration changes which I think is the best way of integrating letsencrypt certificates.
 
 2. The script to run the docker container for requesting a certificate now only needs to be executed with the correct ports mapped. (See `request_certificate.sh`)
 
         #!/bin/bash
-        docker run -it --rm -p 1086:80 -p 1087:443 --name letsencrypt \
+        mkdir -p /tmp/letsencrypt/www
+        docker run -it --rm --name letsencrypt \
             -v "/etc/letsencrypt:/etc/letsencrypt" \
             -v "/var/lib/letsencrypt:/var/lib/letsencrypt" \
-            quay.io/letsencrypt/letsencrypt:latest auth --renew-by-default --server \
+            -v "/tmp/letsencrypt/www:/var/www" \
+            quay.io/letsencrypt/letsencrypt:latest auth --authenticator webroot --webroot-path /var/www --renew-by-default --server \
             https://acme-v01.api.letsencrypt.org/directory -d my.example.com
 
-Issuing the certificate works this way without a problem.
-~~Unfortunately running the same command a second time to request an updated certificate always fails with different error messages.~~
-Meanwhile the renewal also works. To fully automate the renewal process I added the following parameter "--renew-by-default".
+Issuing the certificate and also renewal work this way without a problem.
